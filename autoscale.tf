@@ -92,7 +92,7 @@ resource "aws_security_group" "lb_securitygroup" {
 }
 ### load balacer listener 
 ## Listens for incoming HTTP requests and defines how the Load Balancer should handle them.
-resource " aws_lb_listener" "listener_example" {
+resource "aws_lb_listener" "listener_example" {
     load_balancer_arn = aws_lb.example_lb.arn # Attach listener to the ALB
     port = 80 # Listen on HTTP port 80
     protocol = "HTTP"
