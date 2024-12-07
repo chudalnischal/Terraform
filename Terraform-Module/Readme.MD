@@ -20,7 +20,7 @@ terraform/
 
 * /module/: This directory contains the reusable module, which has all the configurations for specific resources.
 
-* /Project/: This directory is the root project directory where the module is utilized.
+* /Project/: This directory is the project directory where the module is imported from the /module folder.
 
 ## Why Use Modules?
 
@@ -39,7 +39,7 @@ To use a module, you need to reference it in your main Terraform configuration:
 
 ```hcl
 module "new_module" {
-  source = "./Project" # Specifies the path to the module
+  source = "./module" # Specifies the path to the module
 }
 ```
 
@@ -51,7 +51,7 @@ Even after initializing your module with the `terraform init` command, if your P
 
 ### Defining Input Variables
 
-Add a `variables.tf` file to the folder where you want to import the Terraform module. For example, in `/module/variables.tf`:
+Add a `variables.tf` file in the folder from where you want to import the Terraform module. For example, in `/module/variables.tf`:
 
 ```hcl
 variable "cluster_name" {
@@ -101,7 +101,7 @@ module "new_module" {
 
 ### Explanation
 - Input Variables: Allow you to pass dynamic values to the module, making it reusable and adaptable for different environments or configurations.
-- Resource Creation: The ${var.cluster_name} in main.tf ensures that the aws_security_group name is unique and avoids conflicts when the module is used multiple times.
+- Resource Creation: The ${var.cluster_name} in /module/main.tf ensures that the aws_security_group name is unique and avoids conflicts when the module is used multiple times.
 - Modular Code: The use of modules with variables promotes clean, maintainable, and scalable code structures.
 
 ## Module Locals
@@ -149,14 +149,14 @@ resource "aws_security_group" "lb_securitygroup" {
 }
 ```
 
-### Explanation
+#### Explanation
 - **Local Variables**: Declared with the locals block and used to store constant values that do not change throughout the module.
 - **Reusability**: Using local.http_port and local.tcp_protocol ensures that the port and protocol values are consistent wherever they are used in the module.
 - **Code Simplification**: With locals, any change to http_port or tcp_protocol must only be made in one place, promoting code maintainability.
 - **User Modification**: Unlike input variables that can be passed by the user when running terraform apply, local variables are immutable and cannot be overridden from outside the module.
 
 ### Benefits of Using Locals
--**Avoiding Duplication**: You don't need to repeat the same value across multiple places in your code.
+- **Avoiding Duplication**: You don't need to repeat the same value across multiple places in your code.
 Ease of Updates: To change a value, you only modify it once in the locals block, reflecting it everywhere it's used in the module.
 - **Readability**: Local variables can be named meaningfully, making the code more readable and understandable.
 
@@ -179,7 +179,7 @@ Outputs in Terraform are used to return specific information from a module to th
    }
     ```
 
-### Explanation:
+#### Explanation:
 The output block declares an output value called s3_bucket_name.
 The value is set to aws_s3_bucket.s3store.id, which will be the ID (name) of the S3 bucket created by the module.
 The description provides a brief explanation of what the output represents.
@@ -198,7 +198,7 @@ After defining the output in the module, you need to import the output in the ma
 
 ### Outputting the Value in the Project:
 
-You can also create an outputthe vale which is fetch from the imported module.
+You can also output the value which is fetch from the imported module.
 ```hcl
  #/project/main.tf
 output "modulebucket_name" {
@@ -209,7 +209,7 @@ output "modulebucket_name" {
 
 ## Important Module Gotchas
 
-### 1. File Paths
+## 1. File Paths
 
 When working with modules in Terraform, managing file paths correctly is crucial to avoid unexpected issues. The path to a module should be relative to the root module, ensuring that modules can be reused without needing to adjust file paths based on their location.
 
@@ -227,11 +227,11 @@ resource "local_file" "example" {
 }
 ```
 
-### Explanation:
+#### Explanation:
 - **filename** = "${path.module}/example-output.txt": This line specifies the output file path, ensuring it is relative to the module's location.
 - **content** = file("${path.module}/example.txt"): This reads the content of the example.txt file from the module directory.
 
-#### Why Use path.module?
+### Why Use path.module?
 - **Consistency**: Using path.module helps maintain consistent file paths that do not depend on where the module is being invoked. This ensures that your configuration will work even when the module is used in different projects or directory structures.
 - **Portability**: The module can be moved to different locations or reused in different projects without needing to modify the file paths.
 
@@ -337,7 +337,7 @@ resource "aws_security_group_rule" "extra_rule" {
 }
 ```
 
-### Explanation:
+#### Explanation:
 - **Inline Blocks**: All ingress and egress configurations are included within the aws_security_group resource block.
 - **Separate Resource Blocks**: aws_security_group_rule resources are used to define ingress and egress rules separately, allowing for more granular control and additional configurations in other parts of your configuration.
 - **Extra Configuration**: You can add new rules in the project folder by referencing the output from the module, ensuring that the new rules apply to the security group created within the module.
