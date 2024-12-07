@@ -7,7 +7,7 @@ A module in Terraform is a container for multiple resources that are used togeth
 ## Folder Structure for Learning Modules
 
 Here's an example of how you might structure your folders when learning Terraform modules:
-
+```hcl
 terraform/
 ├── module/
 │   ├── main.tf
@@ -16,7 +16,7 @@ terraform/
 │   └── example.txt
 └── Project/
      └── main.tf
-
+```
 
 * /module/: This directory contains the reusable module, which has all the configurations for specific resources.
 
@@ -155,7 +155,7 @@ resource "aws_security_group" "lb_securitygroup" {
 - **Code Simplification**: With locals, any change to http_port or tcp_protocol must only be made in one place, promoting code maintainability.
 - **User Modification**: Unlike input variables that can be passed by the user when running terraform apply, local variables are immutable and cannot be overridden from outside the module.
 
-###Benefits of Using Locals
+### Benefits of Using Locals
 -**Avoiding Duplication**: You don't need to repeat the same value across multiple places in your code.
 Ease of Updates: To change a value, you only modify it once in the locals block, reflecting it everywhere it's used in the module.
 - **Readability**: Local variables can be named meaningfully, making the code more readable and understandable.
@@ -169,11 +169,10 @@ Outputs in Terraform are used to return specific information from a module to th
 ### How to Create Outputs
 
 1. **Defining Outputs in the Module**:
-   - First, create an `outputs.tf` file in the module folder and define the output that you want to expose. This step allows the module to provide a specific value back to the calling project.
+   - First, create an `outputs.tf` file in the root folder from where you want to import  and define the output that you want to expose. This step allows the module to provide a specific value back to the calling project.
 
    ```hcl
    # /module/outputs.tf
-
    output "s3_bucket_name" {
      value       = aws_s3_bucket.s3store.id  # Outputs the ID (name) of the S3 bucket created
      description = "value of the s3 bucket name"
@@ -184,21 +183,22 @@ Outputs in Terraform are used to return specific information from a module to th
 The output block declares an output value called s3_bucket_name.
 The value is set to aws_s3_bucket.s3store.id, which will be the ID (name) of the S3 bucket created by the module.
 The description provides a brief explanation of what the output represents.
-Importing Outputs in the Main Project:
 
-After defining the output in the module, you need to import the output in the main.tf file of the project where the module is being used. This is done using the module.<module_name>.<output_name> syntax.
+### Importing Outputs in the Main Project:
 
-/project/main.tf 
-Syntax to reference an output from a module
+After defining the output in the module, you need to import the output in the main.tf file of the project where the module is being used. This is done using the  `module.<module_name>.<output_name> syntax.`
+```hcl
+#/project/main.tf 
+#Syntax to reference an output from a module
 `module.newModule.s3_bucket_name`
+```
 
 ### Explanation:
 `module.newModule.s3_bucket_name` accesses the output s3_bucket_name from the module named newModule in the current project.
 
 ### Outputting the Value in the Project:
 
-You can also create an output in the main project to display or use the value of the imported module output.
-
+You can also create an outputthe vale which is fetch from the imported module.
 ```hcl
  #/project/main.tf
 output "modulebucket_name" {
@@ -235,7 +235,7 @@ resource "local_file" "example" {
 - **Consistency**: Using path.module helps maintain consistent file paths that do not depend on where the module is being invoked. This ensures that your configuration will work even when the module is used in different projects or directory structures.
 - **Portability**: The module can be moved to different locations or reused in different projects without needing to modify the file paths.
 
-**Final Notes**
+**Notes**
 Always use path.module when referencing files within a module to avoid path-related errors.
 This approach ensures that your code is modular and can be easily shared or relocated while maintaining correct file references.
 
@@ -252,9 +252,9 @@ resource "xxx" "yyy" {
   }
 }
 ```
-
-<NAME> is the name of the inline block.
-[CONFIG...] is the configuration for the block.
+#### Explaination
+ where `<NAME>`  is the name of the inline block.
+``[CONFIG... ]`is the configuration for the block.
 
 ### Example of Inline Blocks in a Security Group
 Inline blocks allow you to define multiple configurations within a single resource. For example, a security group in AWS can have both ingress and egress rules defined within the same resource block.
