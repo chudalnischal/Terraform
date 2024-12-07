@@ -8,14 +8,14 @@ A module in Terraform is a container for multiple resources that are used togeth
 
 Here's an example of how you might structure your folders when learning Terraform modules:
 
-# terraform/
-# ├── module/
-# │   ├── main.tf
-# │   ├── variables.tf
-# │   ├── outputs.tf
-# │   └── example.txt
-# └── Project/
-#     └── main.tf
+terraform/
+├── module/
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── example.txt
+└── Project/
+     └── main.tf
 
 
 * /module/: This directory contains the reusable module, which has all the configurations for specific resources.
@@ -41,7 +41,7 @@ To use a module, you need to reference it in your main Terraform configuration:
 module "new_module" {
   source = "./Project" # Specifies the path to the module
 }
-~
+```
 
 ### Problem with Hardcoded Values
 
@@ -58,7 +58,7 @@ variable "cluster_name" {
   description = "The name of the cluster"
   type        = string
 }
-~
+```
 
 ### Using the Variable in the Module
 
@@ -85,18 +85,19 @@ resource "aws_security_group" "lb_securitygroup" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-~
+```
 
 ## Module Block with Variables
 In your project’s main.tf file, you can reference the module and pass the input variable as shown below:
 
 Example of using the module in /project/main.tf:
-
+```hcl
 #/Project/main.tf
 module "new_module" {
   source = "./module" # Path to the module
   cluster_name = "staging-cluster"
 }
+```
 
 ### Explanation
 - Input Variables: Allow you to pass dynamic values to the module, making it reusable and adaptable for different environments or configurations.
@@ -126,7 +127,7 @@ locals {
     any_port = 0 
     tcp_protocol = "tcp" 
 }
-~ 
+```
 
 ### Using Locals in Resources
 After declaring locals, you can use them in resource blocks within the module. This helps make your code more readable and ensures that if a value needs to be updated, you only need to modify it in one place.
@@ -146,7 +147,7 @@ resource "aws_security_group" "lb_securitygroup" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 }
-~ 
+```
 
 ### Explanation
 - **Local Variables**: Declared with the locals block and used to store constant values that do not change throughout the module.
@@ -177,7 +178,7 @@ Outputs in Terraform are used to return specific information from a module to th
      value       = aws_s3_bucket.s3store.id  # Outputs the ID (name) of the S3 bucket created
      description = "value of the s3 bucket name"
    }
-~
+    ```
 
 ### Explanation:
 The output block declares an output value called s3_bucket_name.
@@ -204,7 +205,7 @@ output "modulebucket_name" {
     value       = module.newModule.s3_bucket_name
     description = "value of the bucket name which is imported from the module folder and outputted"
 }
-~
+```
 
 ## Important Module Gotchas
 
@@ -224,7 +225,7 @@ resource "local_file" "example" {
   filename = "${path.module}/example-output.txt"  # Output file in the module folder
   content  = file("${path.module}/example.txt")   # Read the local file
 }
-~ 
+```
 
 ### Explanation:
 - **filename** = "${path.module}/example-output.txt": This line specifies the output file path, ensuring it is relative to the module's location.
@@ -250,11 +251,12 @@ resource "xxx" "yyy" {
     [CONFIG...]
   }
 }
-~
+```
 
 <NAME> is the name of the inline block.
 [CONFIG...] is the configuration for the block.
-Example of Inline Blocks in a Security Group
+
+### Example of Inline Blocks in a Security Group
 Inline blocks allow you to define multiple configurations within a single resource. For example, a security group in AWS can have both ingress and egress rules defined within the same resource block.
 
 **Example Code:**
@@ -278,8 +280,8 @@ resource "aws_security_group" "alb" {
     cidr_blocks = local.all_ips
   }
 }
-~
-#### Note on Configuration
+```
+##### Note on Configuration
 - Do not mix inline blocks with separate resource blocks in the same resource, as this may override configurations and cause unexpected behavior.
 
 ### Example of Separate Resource Blocks
@@ -312,7 +314,7 @@ resource "aws_security_group_rule" "allow_all_outbound" {
   protocol = local.any_protocol
   cidr_blocks = local.all_ips
 }
-~
+```
  ### Adding Extra Configuration in the Project Folder
 - When adding additional rules in the project folder that rely on the module, you can do so by referencing the output from the module.
 
@@ -333,7 +335,7 @@ resource "aws_security_group_rule" "extra_rule" {
   protocol = "tcp"
   cidr_blocks = ["0.0.0.0/0"]
 }
-~
+```
 
 ### Explanation:
 - **Inline Blocks**: All ingress and egress configurations are included within the aws_security_group resource block.
@@ -368,12 +370,12 @@ module "example_module" {
   source  = "github.com/username/repo-name//module-folder"
   version = "v1.0.0"  # Specify the version tag from the GitHub repository
 }
-~
+```
 ### Explanation:
-source: Specifies the URL to the module's GitHub repository and the path to the specific folder containing the module.
-version: The version tag defined in the GitHub repository (e.g., v1.0.0).
+- source: Specifies the URL to the module's GitHub repository and the path to the specific folder containing the module.
+- version: The version tag defined in the GitHub repository (e.g., v1.0.0).
 
 ### Benefits of Versioning Your Modules:
-=- Ensures that your infrastructure code is predictable and deployable without unexpected changes.
+- Ensures that your infrastructure code is predictable and deployable without unexpected changes.
 - Allows you to control updates and improvements to the module, testing them before they are rolled out to production.
 - Using versioned modules provides a more controlled, stable, and reliable infrastructure deployment process.
