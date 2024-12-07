@@ -41,9 +41,9 @@ To use a module, you need to reference it in your main Terraform configuration:
 module "new_module" {
   source = "./Project" # Specifies the path to the module
 }
+~
 
-
-## Problem with Hardcoded Values
+### Problem with Hardcoded Values
 
 Even after initializing your module with the `terraform init` command, if your Project folder has hardcoded names, it can lead to conflicts when using the module multiple times within an account. To avoid this, you should use input variables in your module.
 
@@ -58,9 +58,7 @@ variable "cluster_name" {
   description = "The name of the cluster"
   type        = string
 }
-
-
-## Using Input Variables in the Module
+~
 
 ### Using the Variable in the Module
 
@@ -87,22 +85,23 @@ resource "aws_security_group" "lb_securitygroup" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+~
 
-Module Block with Variables
+## Module Block with Variables
 In your project’s main.tf file, you can reference the module and pass the input variable as shown below:
 
 Example of using the module in /project/main.tf:
 
-# /Project/main.tf
+#/Project/main.tf
 module "new_module" {
   source = "./module" # Path to the module
   cluster_name = "staging-cluster"
 }
 
-Explanation
-Input Variables: Allow you to pass dynamic values to the module, making it reusable and adaptable for different environments or configurations.
-Resource Creation: The ${var.cluster_name} in main.tf ensures that the aws_security_group name is unique and avoids conflicts when the module is used multiple times.
-Modular Code: The use of modules with variables promotes clean, maintainable, and scalable code structures.
+### Explanation
+- Input Variables: Allow you to pass dynamic values to the module, making it reusable and adaptable for different environments or configurations.
+- Resource Creation: The ${var.cluster_name} in main.tf ensures that the aws_security_group name is unique and avoids conflicts when the module is used multiple times.
+- Modular Code: The use of modules with variables promotes clean, maintainable, and scalable code structures.
 
 ## Module Locals
 
@@ -127,8 +126,9 @@ locals {
     any_port = 0 
     tcp_protocol = "tcp" 
 }
+~ 
 
-Using Locals in Resources
+### Using Locals in Resources
 After declaring locals, you can use them in resource blocks within the module. This helps make your code more readable and ensures that if a value needs to be updated, you only need to modify it in one place.
 
 Example of using locals in the main.tf file:
@@ -146,15 +146,18 @@ resource "aws_security_group" "lb_securitygroup" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 }
-Explanation
-Local Variables: Declared with the locals block and used to store constant values that do not change throughout the module.
-Reusability: Using local.http_port and local.tcp_protocol ensures that the port and protocol values are consistent wherever they are used in the module.
-Code Simplification: With locals, any change to http_port or tcp_protocol must only be made in one place, promoting code maintainability.
-User Modification: Unlike input variables that can be passed by the user when running terraform apply, local variables are immutable and cannot be overridden from outside the module.
-Benefits of Using Locals
-Avoiding Duplication: You don't need to repeat the same value across multiple places in your code.
+~ 
+
+### Explanation
+- **Local Variables**: Declared with the locals block and used to store constant values that do not change throughout the module.
+- **Reusability**: Using local.http_port and local.tcp_protocol ensures that the port and protocol values are consistent wherever they are used in the module.
+- **Code Simplification**: With locals, any change to http_port or tcp_protocol must only be made in one place, promoting code maintainability.
+- **User Modification**: Unlike input variables that can be passed by the user when running terraform apply, local variables are immutable and cannot be overridden from outside the module.
+
+###Benefits of Using Locals
+-**Avoiding Duplication**: You don't need to repeat the same value across multiple places in your code.
 Ease of Updates: To change a value, you only modify it once in the locals block, reflecting it everywhere it's used in the module.
-Readability: Local variables can be named meaningfully, making the code more readable and understandable.
+- **Readability**: Local variables can be named meaningfully, making the code more readable and understandable.
 
 ## Module Outputs
 
@@ -174,8 +177,9 @@ Outputs in Terraform are used to return specific information from a module to th
      value       = aws_s3_bucket.s3store.id  # Outputs the ID (name) of the S3 bucket created
      description = "value of the s3 bucket name"
    }
+~
 
-Explanation:
+### Explanation:
 The output block declares an output value called s3_bucket_name.
 The value is set to aws_s3_bucket.s3store.id, which will be the ID (name) of the S3 bucket created by the module.
 The description provides a brief explanation of what the output represents.
@@ -183,22 +187,24 @@ Importing Outputs in the Main Project:
 
 After defining the output in the module, you need to import the output in the main.tf file of the project where the module is being used. This is done using the module.<module_name>.<output_name> syntax.
 
-# /project/main.tf 
-# Syntax to reference an output from a module
-module.newModule.s3_bucket_name
+/project/main.tf 
+Syntax to reference an output from a module
+`module.newModule.s3_bucket_name`
 
-Explanation:
-module.newModule.s3_bucket_name accesses the output s3_bucket_name from the module named newModule in the current project.
-Outputting the Value in the Project:
+### Explanation:
+`module.newModule.s3_bucket_name` accesses the output s3_bucket_name from the module named newModule in the current project.
+
+### Outputting the Value in the Project:
 
 You can also create an output in the main project to display or use the value of the imported module output.
 
-# /project/main.tf
 ```hcl
+ #/project/main.tf
 output "modulebucket_name" {
     value       = module.newModule.s3_bucket_name
     description = "value of the bucket name which is imported from the module folder and outputted"
 }
+~
 
 ## Important Module Gotchas
 
@@ -218,15 +224,17 @@ resource "local_file" "example" {
   filename = "${path.module}/example-output.txt"  # Output file in the module folder
   content  = file("${path.module}/example.txt")   # Read the local file
 }
+~ 
 
-Explanation:
-filename = "${path.module}/example-output.txt": This line specifies the output file path, ensuring it is relative to the module's location.
-content = file("${path.module}/example.txt"): This reads the content of the example.txt file from the module directory.
-Why Use path.module?
-Consistency: Using path.module helps maintain consistent file paths that do not depend on where the module is being invoked. This ensures that your configuration will work even when the module is used in different projects or directory structures.
-Portability: The module can be moved to different locations or reused in different projects without needing to modify the file paths.
+### Explanation:
+- **filename** = "${path.module}/example-output.txt": This line specifies the output file path, ensuring it is relative to the module's location.
+- **content** = file("${path.module}/example.txt"): This reads the content of the example.txt file from the module directory.
 
-Final Notes
+#### Why Use path.module?
+- **Consistency**: Using path.module helps maintain consistent file paths that do not depend on where the module is being invoked. This ensures that your configuration will work even when the module is used in different projects or directory structures.
+- **Portability**: The module can be moved to different locations or reused in different projects without needing to modify the file paths.
+
+**Final Notes**
 Always use path.module when referencing files within a module to avoid path-related errors.
 This approach ensures that your code is modular and can be easily shared or relocated while maintaining correct file references.
 
@@ -242,16 +250,16 @@ resource "xxx" "yyy" {
     [CONFIG...]
   }
 }
+~
 
 <NAME> is the name of the inline block.
 [CONFIG...] is the configuration for the block.
 Example of Inline Blocks in a Security Group
 Inline blocks allow you to define multiple configurations within a single resource. For example, a security group in AWS can have both ingress and egress rules defined within the same resource block.
 
-Example Code:
+**Example Code:**
 
-hcl
-Copy code
+```hcl
 # /module/main.tf
 resource "aws_security_group" "alb" {
   name = "${var.cluster_name}-alb"
@@ -270,15 +278,16 @@ resource "aws_security_group" "alb" {
     cidr_blocks = local.all_ips
   }
 }
-Note on Configuration
-Do not mix inline blocks with separate resource blocks in the same resource, as this may override configurations and cause unexpected behavior.
-Example of Separate Resource Blocks
+~
+#### Note on Configuration
+- Do not mix inline blocks with separate resource blocks in the same resource, as this may override configurations and cause unexpected behavior.
+
+### Example of Separate Resource Blocks
 Instead of using inline blocks, you can create separate resource blocks for ingress and egress rules.
 
-Example Code:
+**Example Code:**
 
-hcl
-Copy code
+```hcl
 # /module/main.tf
 resource "aws_security_group" "alb" {
   name = "${var.cluster_name}-alb"
@@ -303,13 +312,13 @@ resource "aws_security_group_rule" "allow_all_outbound" {
   protocol = local.any_protocol
   cidr_blocks = local.all_ips
 }
-Adding Extra Configuration in the Project Folder
-When adding additional rules in the project folder that rely on the module, you can do so by referencing the output from the module.
+~
+ ### Adding Extra Configuration in the Project Folder
+- When adding additional rules in the project folder that rely on the module, you can do so by referencing the output from the module.
 
-Example Code:
+**Example Code:**
 
-hcl
-Copy code
+```hcl
 # /project/main.tf
 module "new_module" {
   source = "./module"
@@ -324,10 +333,12 @@ resource "aws_security_group_rule" "extra_rule" {
   protocol = "tcp"
   cidr_blocks = ["0.0.0.0/0"]
 }
-Explanation:
-Inline Blocks: All ingress and egress configurations are included within the aws_security_group resource block.
-Separate Resource Blocks: aws_security_group_rule resources are used to define ingress and egress rules separately, allowing for more granular control and additional configurations in other parts of your configuration.
-Extra Configuration: You can add new rules in the project folder by referencing the output from the module, ensuring that the new rules apply to the security group created within the module.
+~
+
+### Explanation:
+- **Inline Blocks**: All ingress and egress configurations are included within the aws_security_group resource block.
+- **Separate Resource Blocks**: aws_security_group_rule resources are used to define ingress and egress rules separately, allowing for more granular control and additional configurations in other parts of your configuration.
+- **Extra Configuration**: You can add new rules in the project folder by referencing the output from the module, ensuring that the new rules apply to the security group created within the module.
 This approach provides flexibility in structuring and customizing your infrastructure code.
 
 ## 3. Module Versioning
@@ -357,10 +368,12 @@ module "example_module" {
   source  = "github.com/username/repo-name//module-folder"
   version = "v1.0.0"  # Specify the version tag from the GitHub repository
 }
-Explanation:
+~
+### Explanation:
 source: Specifies the URL to the module's GitHub repository and the path to the specific folder containing the module.
 version: The version tag defined in the GitHub repository (e.g., v1.0.0).
-Benefits of Versioning Your Modules:
-Ensures that your infrastructure code is predictable and deployable without unexpected changes.
-Allows you to control updates and improvements to the module, testing them before they are rolled out to production.
-Using versioned modules provides a more controlled, stable, and reliable infrastructure deployment process.
+
+### Benefits of Versioning Your Modules:
+=- Ensures that your infrastructure code is predictable and deployable without unexpected changes.
+- Allows you to control updates and improvements to the module, testing them before they are rolled out to production.
+- Using versioned modules provides a more controlled, stable, and reliable infrastructure deployment process.
