@@ -209,6 +209,7 @@ output "modulebucket_name" {
 
 ## Important Module Gotchas
 
+
 ## 1. File Paths
 
 When working with modules in Terraform, managing file paths correctly is crucial to avoid unexpected issues. The path to a module should be relative to the root module, ensuring that modules can be reused without needing to adjust file paths based on their location.
