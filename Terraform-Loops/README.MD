@@ -1,140 +1,171 @@
-# Loops, If Statement, Zero Downtime Deployment & Terraform Gotchas
+# Loops, If Statements, Zero Downtime Deployment & Terraform Gotchas
 
 ## Loops
-Terraform offers several different looping constructs, each intended to be used in slightly different scenarios:
+Terraform offers several looping constructs, each intended for different scenarios to simplify and scale infrastructure configurations. Below are the main types of loops Terraform provides:
 
-1. **count**: To loop over resources and modules.
-2. **for_each**: To loop over resources, inline blocks within resources, and modules.
-3. **for**: To loop over lists and maps.
-4. **for string**: To loop over lists and maps within a string.
+1. **Count**: Used to loop over resources and modules.
+2. **for_each**: Used to loop over resources, inline blocks within a resource, and modules.
+3. **for**: Used to loop over lists and maps.
+4. **for string**: Used to loop over lists and maps within a string.
 
-### Loops with Count
-`count` is used inside the resource block. For example, to create multiple IAM users:
+---
 
-#### Example 1: Basic Count Usage
+### Loops with `Count`
+The `count` parameter allows you to loop over resources or modules, enabling easy scaling of resources.
+
+#### Example: Creating Multiple IAM Users
+
+- **Scenario**: Creating multiple IAM users.
+- **Problem**: If we use `count` without modifications, all users will have the same name.
+
+**Code**
 ```hcl
 /iam/main.tf
 resource "aws_iam_user" "example" {
     count = 3
-    name = "neo"
+    name  = "neo"
 }
 ```
-This creates three users with the same name. To avoid this, use the `count.index`:
+This creates 3 users named `neo`, which is not ideal. 
 
+#### Using `count.index` to Differentiate User Names
+To assign unique names, use `count.index`.
+
+**Updated Code**
 ```hcl
 /iam/main.tf
 resource "aws_iam_user" "example" {
     count = 3
-    name = "neo.${count.index}"
+    name  = "neo.${count.index}"
 }
 ```
-This will create users with names `neo.1`, `neo.2`, and `neo.3`. To provide better names, use a variable file:
+This will create users with names like `neo.0`, `neo.1`, and `neo.2`.
 
-#### Example 2: Using Variables
+#### Using Variables for Custom Names
+To avoid hardcoding, define a variable for user names.
+
+**Variables File**
 ```hcl
 /module/variables.tf
 variable "iam-username" {
     description = "Username of the IAM users"
-    type = list(string)
-    default = ["neo", "lucy", "rocky"]
+    type        = list(string)
+    default     = ["neo", "lucy", "rocky"]
 }
 ```
 
+**Updated Code**
 ```hcl
 /iam/main.tf
 resource "aws_iam_user" "example" {
     count = length(var.iam-username)
-    name = var.iam-username[count.index]
+    name  = var.iam-username[count.index]
 }
 ```
+This creates users with names from the variable list, such as `neo`, `lucy`, and `rocky`.
 
-#### Outputting Results
-To output the ARN of the users:
+#### Outputting User ARNs
+Use an `output.tf` file to output specific user attributes.
 
+**Output Code**
 ```hcl
 /output.tf
 output "iam-user-output" {
     description = "Outputting the ARN of the user"
-    value = aws_iam_user.example[0] # 0 for the first user; use `[*]` for all users.
-}
-```
-Adding `count` in resources turns it into an array of resources, and in modules, it creates an array of modules.
-
-#### Limitations:
-1. Cannot iterate over inline blocks inside resources.
-2. Changing a value in the middle of a list deletes and recreates all subsequent resources.
-
-### Loops with for_each
-`for_each` allows us to loop over maps, lists, and sets to create multiple copies of resources, inline blocks, and modules.
-
-#### Syntax
-```hcl
-resource "<PROVIDER>_<TYPE>" "<NAME>" {
-    for_each = <COLLECTION>
-    [CONFIG ...]
+    value       = aws_iam_user.example[0] # Outputs the first user's ARN
+    # Use [*] to select all ARNs
 }
 ```
 
-#### Example: IAM Users with for_each
+#### Notes and Limitations
+- Adding `count` to resources turns them into an array.
+- Adding `count` to modules turns them into an array of modules.
+- **Limitations**:
+  1. `count` cannot iterate over inline blocks within resources.
+  2. Changing a value in the middle of a list deletes and recreates subsequent resources.
+
+---
+
+### Loops with `for_each`
+`for_each` is more flexible than `count` as it works with maps, sets, and lists to create multiple resources or inline blocks within resources.
+
+#### Example: Creating Multiple IAM Users
+- **Scenario**: Looping over a set of usernames to create IAM users.
+
+**Code**
 ```hcl
 resource "aws_iam_user" "example" {
     for_each = toset(var.user_names)
-    name = each.value
+    name     = each.value
 }
 ```
-Here, `toset` converts the list into a set, as lists cannot be directly used in `for_each`. You can access the key and value using `each.key` and `each.value`.
+- **Key Points**:
+  - `toset` converts a list to a set because lists cannot be used with `for_each`.
+  - `each.key` and `each.value` access the current item's key and value.
 
-#### Outputting Results
+#### Outputting Attributes
+To output all user ARNs:
 ```hcl
 output "all_arns" {
     value = values(aws_iam_user.example)[*].arn
 }
 ```
-Using `for_each` creates a map of resources, allowing safe removal of items from the middle of a collection.
+- `values` extracts the values from the map created by `for_each`.
+- `[*]` is a splat expression to iterate over all values.
 
-#### Using for_each with Modules
+#### Deleting Specific Resources
+Using `for_each` ensures only specific items are deleted, unlike `count`, which can cause cascading deletions.
+
+#### Using `for_each` in Modules
+You can also use `for_each` with modules.
+
+**Code**
 ```hcl
 module "users" {
-    source = "../../../modules/iam/"
-    for_each = toset(var.user_names)
-    user_name = each.value
+    source     = "../../../modules/iam/"
+    for_each   = toset(var.user_names)
+    user_name  = each.value
 }
 ```
-Output the ARNs:
+To output module results:
 ```hcl
 output "user_arns" {
-    value = values(module.users)[*].user_arn
+    value       = values(module.users)[*].user_arn
     description = "The ARNs of the created IAM users"
 }
 ```
 
-#### Inline Blocks with for_each
-To set custom tags on EC2 instances:
+#### Inline Blocks with `for_each`
+You can also create multiple inline blocks within a resource using `for_each`.
 
+**Example: Setting Tags Dynamically**
+
+1. **Define Input Variables**
 ```hcl
 /module/variables.tf
 variable "custom_tags" {
     description = "Custom tags to set on the instances"
-    type = map(string)
-    default = {}
+    type        = map(string)
+    default     = {}
 }
 ```
 
-Set tags in the development area:
+2. **Set Tags in Module**
 ```hcl
 module "instance_dev" {
     source = "../modules/ec2"
     custom_tags = {
         maintainer = "Nischal"
-        tools      = "Terraform"
+        tools      = "terraform"
     }
 }
 ```
 
-Define the EC2 instance resource:
+3. **Iterate Over Tags in Resource**
 ```hcl
-resource "aws_instance" "instance-example" {
-    instance_type = "t2.micro"
+resource "aws_instance" "instance-examp" {
+    arn            = ""
+    instance_type  = "t2.micro"
 
     dynamic "names" {
         for_each = var.custom_tags
@@ -145,20 +176,112 @@ resource "aws_instance" "instance-example" {
     }
 }
 ```
-If working with lists, use index numbers in place of `key`.
+- **Key Points**:
+  - `dynamic` creates inline blocks dynamically.
+  - `names.key` and `names.value` access tag keys and values.
 
-#### Default Tags for AWS Resources
-To apply tags across all AWS resources:
+#### Global Tags
+For tags applied to all resources, use the `default_tags` block in the AWS provider:
+
+**Code**
 ```hcl
 provider "aws" {
     region = "us-east-2"
 
     default_tags {
         tags = {
-            Owner      = "team-foo"
-            ManagedBy  = "Terraform"
+            Owner     = "team-foo"
+            ManagedBy = "Terraform"
         }
     }
 }
 ```
-Note: Some resources may not support tags.
+- Resources that don’t support tags are exceptions.
+
+---
+
+## If Statements
+
+Terraform's `if` statements allow conditional expressions to configure resources dynamically.
+
+**Syntax**:
+```hcl
+condition ? true_value : false_value
+```
+
+**Example**:
+```hcl
+resource "aws_instance" "example" {
+    instance_type = var.is_prod ? "t3.large" : "t3.micro"
+}
+```
+- If `var.is_prod` is `true`, the instance type is `t3.large`.
+- Otherwise, it is `t3.micro`.
+
+---
+
+## Zero Downtime Deployment
+Zero Downtime Deployment ensures that updates to infrastructure do not cause interruptions. Here’s a common approach:
+
+1. **Use an ALB**:
+   - Attach your EC2 instances to an ALB.
+   - Gradually shift traffic from old instances to new ones.
+
+2. **Use Terraform Modules**:
+   - Split infrastructure into modules.
+   - Update modules without affecting others.
+
+3. **Blue-Green Deployment**:
+   - Create two identical environments (blue and green).
+   - Switch traffic between them.
+
+4. **Rolling Updates**:
+   - Use Auto Scaling Groups with `min_size` and `max_size` settings.
+   - Gradually replace instances.
+
+---
+
+## Terraform Gotchas
+### 1. File Paths
+- **Issue**: Paths must be relative to the root module.
+- **Solution**: Use the `path.module` variable to ensure paths are relative to the current module.
+
+**Example**:
+```hcl
+resource "local_file" "example" {
+    filename = "${path.module}/example-output.txt"
+    content  = file("${path.module}/example.txt")
+}
+```
+
+### 2. Inline Blocks
+- **Issue**: Do not mix inline blocks and separate resource blocks; configurations may override each other.
+
+**Example**:
+```hcl
+resource "aws_security_group" "alb" {
+    ingress {
+        from_port   = 80
+        to_port     = 80
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+}
+```
+
+### 3. Module Versioning
+- **Use Case**: Ensure a specific version of a module is used in your configuration.
+
+**Example**:
+```hcl
+module "my_module" {
+    source  = "git::https://github.com/example/repo.git?ref=v1.0.0"
+    version = "~> 1.0"
+}
+```
