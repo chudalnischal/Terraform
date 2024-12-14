@@ -1,167 +1,164 @@
-Loops, If Statement, Zero Downtime Deployement & Terraform Gotchas
+# Loops, If Statement, Zero Downtime Deployment & Terraform Gotchas
 
-Loops
-Terraform offers several different looping constructs. each intendent to be used in slightly different scenarios. 
+## Loops
+Terraform offers several different looping constructs, each intended to be used in slightly different scenarios:
 
-1. count To loop over resources and modules
-2. for_each: to loop over resources, inline blocks within a resources and modules
-3. for: to loop over list and maps
-4. for string: to loop over list and map within a string 
+1. **count**: To loop over resources and modules.
+2. **for_each**: To loop over resources, inline blocks within resources, and modules.
+3. **for**: To loop over lists and maps.
+4. **for string**: To loop over lists and maps within a string.
 
+### Loops with Count
+`count` is used inside the resource block. For example, to create multiple IAM users:
 
-## loops with Count 
-
-COunt is used inside the resources block. 
-Suppose i want to create a IAM user using terraform . it is so easy to create a single user. But what if i need to create multiple users . In this type of case we use count in terraform. Basically, it loop over resources and modules which makes us easy to scale resources.
-
-/iam/main.tf 
- resource "aws_iam_user" "example" {
+#### Example 1: Basic Count Usage
+```hcl
+/iam/main.tf
+resource "aws_iam_user" "example" {
     count = 3
     name = "neo"
- }
-One Problem with this code is that, this will create 3 users with the same name. 
-to over come this issue , we can use index with the count inside the resources. 
-i.e 
-/iam/main.tf 
- resource "aws_iam_user" "example" {
+}
+```
+This creates three users with the same name. To avoid this, use the `count.index`:
+
+```hcl
+/iam/main.tf
+resource "aws_iam_user" "example" {
     count = 3
     name = "neo.${count.index}"
- }
-so what it will do is it will create the 3 user with names neo.1, neo.2 and neo.3. But having this type of name is little complicated. so lets create a variable.tf file 
+}
+```
+This will create users with names `neo.1`, `neo.2`, and `neo.3`. To provide better names, use a variable file:
 
+#### Example 2: Using Variables
+```hcl
 /module/variables.tf
 variable "iam-username" {
-    description = " username of the iam users" 
+    description = "Username of the IAM users"
     type = list(string)
-    default = ["neo","lucy", "rocky"]
+    default = ["neo", "lucy", "rocky"]
 }
+```
 
-now lets modify the main.tf file
-/iam/main.tf 
- resource "aws_iam_user" "example" {
+```hcl
+/iam/main.tf
+resource "aws_iam_user" "example" {
     count = length(var.iam-username)
     name = var.iam-username[count.index]
- }
+}
+```
 
- now this will create the 3 user with different name.
+#### Outputting Results
+To output the ARN of the users:
 
-suppose we need to outpu the arn of the users. for this we need to create the output.tf file 
+```hcl
 /output.tf
 output "iam-user-output" {
-    decsription = " outputing the arn of the user" 
-    value = aws_iam_user.example[0] #0 for the first users
-    # select * for all
+    description = "Outputting the ARN of the user"
+    value = aws_iam_user.example[0] # 0 for the first user; use `[*]` for all users.
 }
+```
+Adding `count` in resources turns it into an array of resources, and in modules, it creates an array of modules.
 
-Adding count in resources turns it into the aray of resourcses
-and adding count in modules turn it in to array of modules
+#### Limitations:
+1. Cannot iterate over inline blocks inside resources.
+2. Changing a value in the middle of a list deletes and recreates all subsequent resources.
 
-limitation: 
-1. It cannot iterate over inline block inside the resources.
-2. When changing the value from between the list, it will delete all the resources after the specific value and create the resources again.
+### Loops with for_each
+`for_each` allows us to loop over maps, lists, and sets to create multiple copies of resources, inline blocks, and modules.
 
-
-## loops with for_each 
-
-It allows us to loop over the map list sets to create a multiple copies of  resources inline block within a resouces and modules.
-
-syntax
+#### Syntax
+```hcl
 resource "<PROVIDER>_<TYPE>" "<NAME>" {
- for_each = <COLLECTION>
- [CONFIG ...]
+    for_each = <COLLECTION>
+    [CONFIG ...]
 }
+```
 
-example: 
+#### Example: IAM Users with for_each
+```hcl
 resource "aws_iam_user" "example" {
- for_each = toset(var.user_names)
- name = each.value
+    for_each = toset(var.user_names)
+    name = each.value
 }
+```
+Here, `toset` converts the list into a set, as lists cannot be directly used in `for_each`. You can access the key and value using `each.key` and `each.value`.
 
-toset: used to conver the list to set as list cannot be used for the resources in for_each 
-each.key and each.value is used to acccess the key and value of the current item in the set/map
-
-if we use for_each it will creat a map of resources . 
-now if we want to output the particular attribute of the user, we can do by 
-
+#### Outputting Results
+```hcl
 output "all_arns" {
- value = values(aws_iam_user.example)[*].arn
+    value = values(aws_iam_user.example)[*].arn
 }
+```
+Using `for_each` creates a map of resources, allowing safe removal of items from the middle of a collection.
 
-where values is the builtin funvtion which retunrs just the values form the map and a splat expression. 
-
- you now have a map of resources with for_each rather than
-an array of resources as with count is a big deal, because it allows you to remove items from the middle of a collection safely
-
-
-Now if we want to delete something from the list of users, it will only destroy the particular resources. 
-
-It can also be used in modules like this: 
-
+#### Using for_each with Modules
+```hcl
 module "users" {
- source = "../../../modules/iam/"
- for_each = toset(var.user_names)
- user_name = each.value
+    source = "../../../modules/iam/"
+    for_each = toset(var.user_names)
+    user_name = each.value
 }
-
-And you can output the ARNs of those users as follows:
+```
+Output the ARNs:
+```hcl
 output "user_arns" {
- value = values(module.users)[*].user_arn
- description = "The ARNs of the created IAM users"
+    value = values(module.users)[*].user_arn
+    description = "The ARNs of the created IAM users"
 }
+```
 
-the other advantage of using for_each is its ability to create multiple inline blocks within a resources. first lets add input variable in variable.tf file. 
+#### Inline Blocks with for_each
+To set custom tags on EC2 instances:
 
+```hcl
 /module/variables.tf
 variable "custom_tags" {
- description = "Custom tags to set on the Instances"
- type = map(string)
- default = {}
+    description = "Custom tags to set on the instances"
+    type = map(string)
+    default = {}
 }
+```
 
-Now lets set some tags in our development area: 
-
+Set tags in the development area:
+```hcl
 module "instance_dev" {
-    source = "../modules/ec2
-
+    source = "../modules/ec2"
     custom_tags = {
         maintainer = "Nischal"
-        Tools = "terraform" 
+        tools      = "Terraform"
     }
 }
+```
 
-this code sets a coule of useful tags : the maintainer tag specifies who is the maintainer of the code and the tools tag specifies which tools he used. now you have created custom tag but how do you set this on ec2 instance. 
+Define the EC2 instance resource:
+```hcl
+resource "aws_instance" "instance-example" {
+    instance_type = "t2.micro"
 
-for this lets move on to the ec2.tf file 
-
-resource "aws_instance" "instance-examp" {
-    arn = ""
-    instance_type = "t2.micro" 
-
-    dynamic "names" { # name that store the result of each iteration
-        for_each = var.custom-tags # list/Maps to iterate over
+    dynamic "names" {
+        for_each = var.custom_tags
         content {
-            key = name.key 
-            value = name.value
+            key   = names.key
+            value = names.value
         }
     }
 }
+```
+If working with lists, use index numbers in place of `key`.
 
-for list we will be using the index number in the place of key and value remains the same
-
-If there are tags that you want to apply to all of your
-AWS resources, a more reliable approach is to add the
-default_tags block to the aws provider in every one of your
-modules:
-
+#### Default Tags for AWS Resources
+To apply tags across all AWS resources:
+```hcl
 provider "aws" {
- region = "us-east-2"
- # Tags to apply to all AWS resources by default
- default_tags {
- tags = {
- Owner = "team-foo"
- ManagedBy = "Terraform"
- }
- }
-}
+    region = "us-east-2"
 
- Note: the only exceptions are resources that don’t support tags
+    default_tags {
+        tags = {
+            Owner      = "team-foo"
+            ManagedBy  = "Terraform"
+        }
+    }
+}
+```
+Note: Some resources may not support tags.
