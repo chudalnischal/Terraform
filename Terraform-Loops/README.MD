@@ -80,6 +80,7 @@ output "iam-user-output" {
 #### Notes and Limitations
 - Adding `count` to resources turns them into an array.
 - Adding `count` to modules turns them into an array of modules.
+
 - **Limitations**:
   1. `count` cannot iterate over inline blocks within resources.
   2. Changing a value in the middle of a list deletes and recreates subsequent resources.
@@ -100,7 +101,7 @@ resource "aws_iam_user" "example" {
 }
 ```
 - **Key Points**:
-  - `toset` converts a list to a set because lists cannot be used with `for_each`.
+  - `toset` converts a list to a set because lists cannot be used with `for_each` with the resources.
   - `each.key` and `each.value` access the current item's key and value.
 
 #### Outputting Attributes
@@ -115,6 +116,7 @@ output "all_arns" {
 
 #### Deleting Specific Resources
 Using `for_each` ensures only specific items are deleted, unlike `count`, which can cause cascading deletions.
+Therefore, you should always prefer using `for_each` instead of `count` while creating multiple copies of resources.
 
 #### Using `for_each` in Modules
 You can also use `for_each` with modules.
@@ -141,6 +143,7 @@ You can also create multiple inline blocks within a resource using `for_each`.
 **Example: Setting Tags Dynamically**
 
 1. **Define Input Variables**
+create a variable.tf file .
 ```hcl
 /module/variables.tf
 variable "custom_tags" {
@@ -151,6 +154,7 @@ variable "custom_tags" {
 ```
 
 2. **Set Tags in Module**
+we can make a module where we will import the tags to be used. we want our tag to be used on EC2 so we are going to import that specfic module which will point towards EC2.
 ```hcl
 module "instance_dev" {
     source = "../modules/ec2"
@@ -162,6 +166,7 @@ module "instance_dev" {
 ```
 
 3. **Iterate Over Tags in Resource**
+so we have specified what tags we want, now how do we implement in EC2, we can do by this way.
 ```hcl
 resource "aws_instance" "instance-examp" {
     arn            = ""
@@ -199,89 +204,3 @@ provider "aws" {
 - Resources that don’t support tags are exceptions.
 
 ---
-
-## If Statements
-
-Terraform's `if` statements allow conditional expressions to configure resources dynamically.
-
-**Syntax**:
-```hcl
-condition ? true_value : false_value
-```
-
-**Example**:
-```hcl
-resource "aws_instance" "example" {
-    instance_type = var.is_prod ? "t3.large" : "t3.micro"
-}
-```
-- If `var.is_prod` is `true`, the instance type is `t3.large`.
-- Otherwise, it is `t3.micro`.
-
----
-
-## Zero Downtime Deployment
-Zero Downtime Deployment ensures that updates to infrastructure do not cause interruptions. Here’s a common approach:
-
-1. **Use an ALB**:
-   - Attach your EC2 instances to an ALB.
-   - Gradually shift traffic from old instances to new ones.
-
-2. **Use Terraform Modules**:
-   - Split infrastructure into modules.
-   - Update modules without affecting others.
-
-3. **Blue-Green Deployment**:
-   - Create two identical environments (blue and green).
-   - Switch traffic between them.
-
-4. **Rolling Updates**:
-   - Use Auto Scaling Groups with `min_size` and `max_size` settings.
-   - Gradually replace instances.
-
----
-
-## Terraform Gotchas
-### 1. File Paths
-- **Issue**: Paths must be relative to the root module.
-- **Solution**: Use the `path.module` variable to ensure paths are relative to the current module.
-
-**Example**:
-```hcl
-resource "local_file" "example" {
-    filename = "${path.module}/example-output.txt"
-    content  = file("${path.module}/example.txt")
-}
-```
-
-### 2. Inline Blocks
-- **Issue**: Do not mix inline blocks and separate resource blocks; configurations may override each other.
-
-**Example**:
-```hcl
-resource "aws_security_group" "alb" {
-    ingress {
-        from_port   = 80
-        to_port     = 80
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
-    egress {
-        from_port   = 0
-        to_port     = 0
-        protocol    = "-1"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
-}
-```
-
-### 3. Module Versioning
-- **Use Case**: Ensure a specific version of a module is used in your configuration.
-
-**Example**:
-```hcl
-module "my_module" {
-    source  = "git::https://github.com/example/repo.git?ref=v1.0.0"
-    version = "~> 1.0"
-}
-```
