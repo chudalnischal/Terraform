@@ -1,16 +1,3 @@
-#Any set of Terraform configuration files in a folder is basically a module in terraform. 
-
-# Folder Structure fro learning Modules
-
-
-# terraform/
-# ├── module/
-# │   ├── main.tf
-# │   ├── variables.tf
-# │   ├── outputs.tf
-# │   └── example.txt
-# └── Project/
-#     └── main.tf
 
 module "new_module" {
   source = "./Project"# specifies the path to the module 
@@ -223,10 +210,3 @@ resource "aws_security_group_rule" "extra_rule" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
 }
-
-# 3. Module Versioning:
-# Terraform modules can be versioned using version constraints in the module block.
-# This is useful when you want to ensure that a specific version of a module is used in your configuration.
-
-# best way is to use the Github repository for the module and then use the versioning in the module block.
-# we can also tag the version in the github repository and then use the version in the module block.
