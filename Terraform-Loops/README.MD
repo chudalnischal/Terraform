@@ -284,7 +284,6 @@ output "mapnames" {
 - **List Syntax:** Uses square brackets (`[]`) to define and output lists.
 - **Map Syntax:** Uses curly braces (`{}`) to define and output maps.
 
-By understanding these basic examples and differences, you can leverage `for` expressions in Terraform to manipulate data structures effectively.
 ---
 
 ## Using `for` String Directives in Terraform
