@@ -284,8 +284,6 @@ output "mapnames" {
 - **List Syntax:** Uses square brackets (`[]`) to define and output lists.
 - **Map Syntax:** Uses curly braces (`{}`) to define and output maps.
 
----
-
 ## Using `for` String Directives in Terraform
 
 String directives in Terraform allow you to incorporate control statements directly into strings. This feature uses syntax similar to string interpolation but with `%{}` instead of `${}`.
