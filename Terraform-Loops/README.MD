@@ -202,5 +202,4 @@ provider "aws" {
 }
 ```
 - Resources that don’t support tags are exceptions.
-
 ---
